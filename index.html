@@ -41,6 +41,16 @@
         <input type="range" id="fontSize" min="80" max="320" step="2" value="200" />
       </div>
 
+      <div class="field">
+        <label for="subInput">副標題（選填・白字手繪黑底標籤）</label>
+        <textarea id="subInput" rows="1" placeholder="例如：第三集 / 只有 63.6 公斤的仁"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="subSize">副標字級：<span id="subSizeVal">96</span>（不會超過標題）</label>
+        <input type="range" id="subSize" min="48" max="320" step="2" value="96" />
+      </div>
+
       <label class="btn btn-secondary">
         🎨 上傳插畫（選填）
         <input type="file" id="illustInput" accept="image/*" hidden />
