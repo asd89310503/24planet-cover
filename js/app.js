@@ -10,10 +10,10 @@
   const SAFE_BOTTOM = SAFE_TOP + SAFE_SIZE;      // 1500
 
   // 預設值（皆以「設計座標 1080 寬」為基準）
-  const TITLE_DEFAULT_SIZE = 130;
-  const TITLE_DEFAULT_CY = 1180;          // 標題預設中心 Y：安全區中下偏下
-  const LOGO_TARGET_W = 700;              // logo 目標寬（含透明留白）
-  const LOGO_CY = 1450;                   // logo 中心 Y：安全區底部附近
+  const TITLE_DEFAULT_SIZE = 200;
+  const TITLE_DEFAULT_CY = 1080;          // 標題預設中心 Y：安全區中下偏下
+  const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
+  const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
 
   // ===== 計算顯示尺寸（手機優先，貼合螢幕）=====
   function computeDisplay() {
@@ -118,6 +118,9 @@
       textAlign: "center",
       lineHeight: 1.05,
       editable: false,
+      lockMovementX: true,    // 強制水平置中：只能上下移動
+      hasControls: false,     // 不顯示縮放控制點：大小一律用字級滑桿
+      lockRotation: true,
       shadow: new fabric.Shadow({
         color: "rgba(0,0,0,0.35)",
         blur: d(10),
