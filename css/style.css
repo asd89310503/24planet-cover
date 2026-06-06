@@ -76,6 +76,7 @@ html, body {
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 13px; color: var(--muted); }
+.rec { color: #b59100; font-size: 12px; }
 .field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 textarea {
