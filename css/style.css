@@ -1,0 +1,108 @@
+/* 24 奇怪星球 封面產生器 — 手機優先樣式 */
+:root {
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --accent: #fcd34d;       /* 品牌黃 */
+  --accent-ink: #1f2937;
+  --line: #e5e7eb;
+  --safe: rgba(120, 120, 120, 0.9);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+}
+
+.app-header {
+  text-align: center;
+  padding: 14px 16px 6px;
+}
+.app-header h1 { font-size: 18px; margin: 0; }
+.subtitle { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+.app-main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 8px 14px 40px;
+}
+
+/* 畫布 */
+.stage { display: flex; flex-direction: column; align-items: center; }
+.canvas-wrap {
+  position: relative;
+  line-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  background: #d4d4d8;
+}
+#coverCanvas { display: block; }
+
+/* 安全區參考線：覆蓋在畫布上，純視覺，不會匯出 */
+.safe-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  border-top: 2px dashed var(--safe);
+  border-bottom: 2px dashed var(--safe);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.18);
+  /* top / height 由 JS 設定（對應 1080×1080 安全區） */
+}
+.safe-overlay::after {
+  content: "IG 安全區 1080×1080";
+  position: absolute;
+  top: 4px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0,0,0,0.45);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.safe-overlay.hidden { display: none; }
+
+.hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+/* 控制列 */
+.controls { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--muted); }
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+textarea {
+  font: inherit;
+  font-size: 16px; /* 避免 iOS 自動放大 */
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  resize: vertical;
+  background: var(--card);
+}
+
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border: none; border-radius: 12px;
+  font: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; text-align: center;
+}
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-secondary { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+.btn-download { background: var(--ink); color: #fff; font-size: 16px; padding: 15px; }
+.btn-link { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+
+.btn:active { transform: translateY(1px); }

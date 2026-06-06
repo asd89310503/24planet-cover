@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>24 奇怪星球 · 封面產生器</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>24 奇怪星球 · 封面產生器</h1>
+    <p class="subtitle">上傳照片 → 打標題 → 下載封面（1080×1920）</p>
+  </header>
+
+  <main class="app-main">
+    <!-- 畫布區 -->
+    <div class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="coverCanvas"></canvas>
+        <!-- 安全區參考線（只在編輯時顯示，不會匯出） -->
+        <div class="safe-overlay" id="safeOverlay" aria-hidden="true"></div>
+      </div>
+      <p class="hint" id="hint">先上傳一張封面照片開始 👇</p>
+    </div>
+
+    <!-- 控制列 -->
+    <div class="controls">
+      <label class="btn btn-primary">
+        📷 上傳封面照片
+        <input type="file" id="photoInput" accept="image/*" hidden />
+      </label>
+
+      <div class="field">
+        <label for="titleInput">標題（可換行）</label>
+        <textarea id="titleInput" rows="2" placeholder="輸入封面標題…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="fontSize">標題字級：<span id="fontSizeVal">130</span></label>
+        <input type="range" id="fontSize" min="60" max="240" step="2" value="130" />
+      </div>
+
+      <label class="btn btn-secondary">
+        🎨 上傳插畫（選填）
+        <input type="file" id="illustInput" accept="image/*" hidden />
+      </label>
+
+      <div class="field-row">
+        <label class="toggle">
+          <input type="checkbox" id="safeToggle" checked />
+          顯示安全區參考線
+        </label>
+        <button class="btn-link" id="deleteBtn" title="刪除選取的元素">🗑 刪除選取</button>
+      </div>
+
+      <button class="btn btn-download" id="downloadBtn">⬇️ 下載 PNG</button>
+    </div>
+  </main>
+
+  <script src="vendor/fabric.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
