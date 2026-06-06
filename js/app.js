@@ -11,11 +11,11 @@
 
   // 預設值（皆以「設計座標 1080 寬」為基準）
   const TITLE_DEFAULT_SIZE = 200;         // 標題預設字級（品牌建議基準）
-  const TITLE_DEFAULT_CY = 1080;          // 標題預設中心 Y：安全區中下偏下
+  const TITLE_DEFAULT_CY = 900;           // 標題預設中心 Y：在副標題上方
   const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
   const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
   const SUB_DEFAULT_SIZE = 120;           // 副標題預設字級（品牌建議基準）
-  const SUB_DEFAULT_CY = 820;             // 副標題預設中心 Y：標題上方
+  const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
 
   // ===== 計算顯示尺寸（手機優先，貼合螢幕）=====
   function computeDisplay() {
