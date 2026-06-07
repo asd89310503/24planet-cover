@@ -107,3 +107,27 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .btn-link { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
 
 .btn:active { transform: translateY(1px); }
+
+/* 儲存彈窗（手機長按儲存） */
+.save-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.92);
+  display: flex; flex-direction: column;
+}
+.save-overlay.hidden { display: none; }
+.save-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 14px 16px;
+  background: #111; color: #fff;
+  position: sticky; top: 0;
+}
+.save-tip { font-size: 14px; }
+.save-close {
+  flex: none;
+  background: var(--accent); color: #1f2937;
+  border: none; border-radius: 999px;
+  padding: 10px 16px; font: inherit; font-size: 15px; font-weight: 700;
+  cursor: pointer;
+}
+.save-img-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+#saveImg { max-width: 100%; height: auto; border-radius: 8px; }

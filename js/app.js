@@ -62,6 +62,7 @@
   let logoImage = null;
   let illustImage = null;
   let subtitleGroup = null;
+  let bgBaseScale = 1;    // 封面照片 cover-fit 基準縮放（= 100%）
 
   // 字級狀態（皆為設計座標 px）。規則：副標不可大於標題。
   let titleSizePx = TITLE_DEFAULT_SIZE;
@@ -85,24 +86,41 @@
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     readImage(file, (img) => {
-      // cover-fit 鋪滿畫布
-      const scale = Math.max(disp.w / img.width, disp.h / img.height);
+      // cover-fit 鋪滿畫布（此縮放 = 100% 基準，剛好蓋滿不留灰）
+      bgBaseScale = Math.max(disp.w / img.width, disp.h / img.height);
       img.set({
         originX: "center",
         originY: "center",
         left: disp.w / 2,
         top: disp.h / 2,
-        scaleX: scale,
-        scaleY: scale,
+        scaleX: bgBaseScale,
+        scaleY: bgBaseScale,
+        hasControls: false,   // 角落控制點常落在畫布外難按，改用縮放滑桿
+        lockRotation: true,
       });
       if (bgImage) canvas.remove(bgImage);
       bgImage = img;
       canvas.add(bgImage);
       restack();
-      hint.textContent = "可拖曳照片調整位置・拖角縮放";
+      // 重置縮放滑桿為 100%
+      photoZoom.value = 100;
+      photoZoomVal.textContent = "100%";
+      hint.textContent = "拖曳照片喬位置・用「照片縮放」滑桿放大來填滿/重新取景";
       ensureTitle();
       ensureLogo();
     });
+  });
+
+  // 封面照片縮放滑桿（100% = 剛好蓋滿；放大可重新取景而不露灰）
+  const photoZoom = document.getElementById("photoZoom");
+  const photoZoomVal = document.getElementById("photoZoomVal");
+  photoZoom.addEventListener("input", () => {
+    photoZoomVal.textContent = photoZoom.value + "%";
+    if (!bgImage) return;
+    const s = bgBaseScale * (parseInt(photoZoom.value, 10) / 100);
+    bgImage.set({ scaleX: s, scaleY: s });   // 以中心縮放，位置不變
+    bgImage.setCoords();
+    canvas.requestRenderAll();
   });
 
   // ===== 標題 =====
@@ -345,19 +363,12 @@
     out.getContext("2d").drawImage(hi, 0, 0, hi.width, hi.height, 0, 0, DESIGN_W, DESIGN_H);
     const dataUrl = out.toDataURL("image/png");
 
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-    if (isIOS) {
-      // iOS Safari 常擋下載：開新分頁讓使用者長按儲存
-      const w = window.open();
-      if (w) {
-        w.document.write(
-          '<title>長按圖片儲存</title><body style="margin:0;background:#000;">' +
-          '<img src="' + dataUrl + '" style="width:100%;display:block" />' +
-          '<p style="color:#fff;text-align:center;font-family:sans-serif">長按上方圖片 →「加入照片」</p></body>'
-        );
-      } else {
-        alert("請允許彈出視窗以儲存圖片");
-      }
+    // 手機（iOS/Android）常擋 Canvas 直接下載 → 用「頁內彈窗」顯示圖片，
+    // 使用者長按儲存，按「返回編輯」即可關閉，不必關掉整個網頁。
+    const isMobile = /iP(hone|ad|od)|Android/.test(navigator.userAgent);
+    if (isMobile) {
+      saveImg.src = dataUrl;
+      saveOverlay.classList.remove("hidden");
     } else {
       const a = document.createElement("a");
       a.href = dataUrl;
@@ -366,6 +377,14 @@
       a.click();
       a.remove();
     }
+  });
+
+  // 儲存彈窗：關閉返回編輯
+  const saveOverlay = document.getElementById("saveOverlay");
+  const saveImg = document.getElementById("saveImg");
+  document.getElementById("saveClose").addEventListener("click", () => {
+    saveOverlay.classList.add("hidden");
+    saveImg.src = "";
   });
 
   // ===== 工具：讀圖檔成 fabric.Image =====

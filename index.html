@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>24 奇怪星球 · 封面產生器</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
-  <link rel="stylesheet" href="css/style.css?v=2" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body>
   <header class="app-header">
@@ -30,6 +30,11 @@
         📷 上傳封面照片
         <input type="file" id="photoInput" accept="image/*" hidden />
       </label>
+
+      <div class="field">
+        <label for="photoZoom">封面照片縮放：<span id="photoZoomVal">100%</span> <span class="rec">（放大可重新取景、不露灰底）</span></label>
+        <input type="range" id="photoZoom" min="100" max="300" step="1" value="100" />
+      </div>
 
       <div class="field">
         <label for="titleInput">標題（可換行）</label>
@@ -68,7 +73,18 @@
     </div>
   </main>
 
+  <!-- 儲存彈窗（手機用：長按圖片儲存，按返回回到編輯） -->
+  <div class="save-overlay hidden" id="saveOverlay">
+    <div class="save-bar">
+      <span class="save-tip">長按下方圖片 →「加入照片 / 儲存影像」</span>
+      <button class="save-close" id="saveClose">← 返回編輯</button>
+    </div>
+    <div class="save-img-wrap">
+      <img id="saveImg" alt="封面圖片，長按儲存" />
+    </div>
+  </div>
+
   <script src="vendor/fabric.min.js"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>
