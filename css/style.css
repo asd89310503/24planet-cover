@@ -71,6 +71,20 @@ html, body {
 
 .hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 
+/* 露灰底警告條 */
+.gray-warn {
+  margin: 10px 0 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  text-align: center;
+}
+.gray-warn.hidden { display: none; }
+
 /* 控制列 */
 .controls { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
 

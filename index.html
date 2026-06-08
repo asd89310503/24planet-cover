@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>24 奇怪星球 · 封面產生器</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
-  <link rel="stylesheet" href="css/style.css?v=3" />
+  <link rel="stylesheet" href="css/style.css?v=4" />
 </head>
 <body>
   <header class="app-header">
@@ -22,6 +22,7 @@
         <div class="safe-overlay" id="safeOverlay" aria-hidden="true"></div>
       </div>
       <p class="hint" id="hint">先上傳一張封面照片開始 👇</p>
+      <p class="gray-warn hidden" id="grayWarn">⚠️ 有露出灰底！請拖曳或放大照片把畫面蓋滿</p>
     </div>
 
     <!-- 控制列 -->
@@ -37,23 +38,33 @@
       </div>
 
       <div class="field">
-        <label for="titleInput">標題（可換行）</label>
+        <label for="titleInput">標題（一行最多 6 字・可換行）</label>
         <textarea id="titleInput" rows="2" placeholder="輸入封面標題…"></textarea>
       </div>
 
       <div class="field">
-        <label for="fontSize">標題字級：<span id="fontSizeVal">200</span> <span class="rec">（品牌建議 200）</span></label>
-        <input type="range" id="fontSize" min="80" max="320" step="2" value="200" />
+        <label for="fontSize">標題字級：<span id="fontSizeVal">220</span> <span class="rec">（品牌建議 220）</span></label>
+        <input type="range" id="fontSize" min="80" max="320" step="2" value="220" />
       </div>
 
       <div class="field">
-        <label for="subInput">副標題（選填・白字手繪黑底標籤）</label>
-        <textarea id="subInput" rows="1" placeholder="例如：第三集 / 只有 63.6 公斤的仁"></textarea>
+        <label for="subInput">副標題（選填・白字手繪黑底標籤・最多 8 字）</label>
+        <textarea id="subInput" rows="1" maxlength="8" placeholder="例如：奇怪的巨鵝 / 結果叫醒我的是"></textarea>
       </div>
 
       <div class="field">
-        <label for="subSize">副標字級：<span id="subSizeVal">120</span> <span class="rec">（品牌建議 120・不超過標題）</span></label>
-        <input type="range" id="subSize" min="48" max="320" step="2" value="120" />
+        <label for="subSize">副標字級：<span id="subSizeVal">150</span> <span class="rec">（品牌建議 150・不超過標題）</span></label>
+        <input type="range" id="subSize" min="48" max="320" step="2" value="150" />
+      </div>
+
+      <div class="field">
+        <label for="noteInput">說明標籤（選填・品牌黃手繪小貼紙）</label>
+        <textarea id="noteInput" rows="1" maxlength="8" placeholder="例如：ep1 / ep2 / 吃好飽"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="noteSize">說明標籤字級：<span id="noteSizeVal">90</span> <span class="rec">（品牌建議 90）</span></label>
+        <input type="range" id="noteSize" min="40" max="200" step="2" value="90" />
       </div>
 
       <label class="btn btn-secondary">
@@ -85,6 +96,6 @@
   </div>
 
   <script src="vendor/fabric.min.js"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

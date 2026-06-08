@@ -10,12 +10,17 @@
   const SAFE_BOTTOM = SAFE_TOP + SAFE_SIZE;      // 1500
 
   // 預設值（皆以「設計座標 1080 寬」為基準）
-  const TITLE_DEFAULT_SIZE = 200;         // 標題預設字級（品牌建議基準）
+  const TITLE_DEFAULT_SIZE = 220;         // 標題預設字級（品牌建議基準）
   const TITLE_DEFAULT_CY = 900;           // 標題預設中心 Y：在副標題上方
+  const TITLE_STROKE_RATIO = 0.1;         // 標題黑描邊粗細 = 字級 × 此比例（加粗）
+  const TITLE_MAX_PER_LINE = 6;           // 標題一行最多字數
   const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
   const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
-  const SUB_DEFAULT_SIZE = 120;           // 副標題預設字級（品牌建議基準）
+  const SUB_DEFAULT_SIZE = 150;           // 副標題預設字級（品牌建議基準）
   const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
+  const SUB_MAX_CHARS = 8;                // 副標題最多字數
+  const NOTE_DEFAULT_SIZE = 90;           // 說明標籤（ep 數／短評）預設字級
+  const NOTE_DEFAULT_CY = 600;            // 說明標籤預設中心 Y：上方
 
   // ===== 計算顯示尺寸（手機優先，貼合螢幕）=====
   function computeDisplay() {
@@ -37,6 +42,23 @@
 
   // d() 把設計座標換算成顯示座標
   const d = (v) => v * SCALE;
+
+  // 依字數硬斷行：保留使用者手動換行，並把每行夾在 n 字以內
+  function wrapByCount(str, n) {
+    return str.split("\n").map((line) => {
+      const chars = Array.from(line);
+      if (chars.length <= n) return line;
+      const out = [];
+      for (let i = 0; i < chars.length; i += n) out.push(chars.slice(i, i + n).join(""));
+      return out.join("\n");
+    }).join("\n");
+  }
+
+  // 依字數截斷（以字為單位，正確處理多位元字元）
+  function capChars(str, n) {
+    const chars = Array.from(str);
+    return chars.length <= n ? str : chars.slice(0, n).join("");
+  }
 
   // ===== 初始化畫布 =====
   const canvasEl = document.getElementById("coverCanvas");
@@ -62,12 +84,15 @@
   let logoImage = null;
   let illustImage = null;
   let subtitleGroup = null;
+  let noteGroup = null;
   let bgBaseScale = 1;    // 封面照片 cover-fit 基準縮放（= 100%）
 
   // 字級狀態（皆為設計座標 px）。規則：副標不可大於標題。
   let titleSizePx = TITLE_DEFAULT_SIZE;
   let subSizePx = SUB_DEFAULT_SIZE;
   let subCenter = null;   // 副標中心（顯示座標），保留拖曳後的位置
+  let noteSizePx = NOTE_DEFAULT_SIZE;
+  let noteCenter = null;  // 說明標籤中心（顯示座標），保留拖曳後的位置
 
   // 維持圖層順序：背景(底) < 插畫 < 標題 < 副標 < logo(頂)
   function restack() {
@@ -75,6 +100,7 @@
     if (illustImage && bgImage) illustImage.moveTo(1);
     if (titleText) canvas.bringToFront(titleText);
     if (subtitleGroup) canvas.bringToFront(subtitleGroup);
+    if (noteGroup) canvas.bringToFront(noteGroup);
     if (logoImage) canvas.bringToFront(logoImage);
     canvas.requestRenderAll();
   }
@@ -108,6 +134,7 @@
       hint.textContent = "拖曳照片喬位置・用「照片縮放」滑桿放大來填滿/重新取景";
       ensureTitle();
       ensureLogo();
+      updateGrayWarn();   // 剛載入為置中蓋滿，隱藏警告
     });
   });
 
@@ -119,8 +146,43 @@
     if (!bgImage) return;
     const s = bgBaseScale * (parseInt(photoZoom.value, 10) / 100);
     bgImage.set({ scaleX: s, scaleY: s });   // 以中心縮放，位置不變
-    bgImage.setCoords();
+    clampBg();                                // 縮小後若露邊，夾回蓋滿
+    updateGrayWarn();
     canvas.requestRenderAll();
+  });
+
+  // ===== 防呆：封面照片不可露出灰底 =====
+  // 半寬／半高（顯示座標）
+  function bgHalfSize() {
+    return { hw: (bgImage.width * bgImage.scaleX) / 2, hh: (bgImage.height * bgImage.scaleY) / 2 };
+  }
+  // 四邊是否都蓋過畫布（容許 0.5px 誤差）
+  function isBgCovered() {
+    if (!bgImage) return true;   // 還沒上傳照片，不算露灰底
+    const { hw, hh } = bgHalfSize();
+    const L = bgImage.left, T = bgImage.top;
+    return (L - hw <= 0.5) && (L + hw >= disp.w - 0.5) &&
+           (T - hh <= 0.5) && (T + hh >= disp.h - 0.5);
+  }
+  // 把照片中心夾在「四邊都蓋住畫布」的範圍內（源頭防呆）
+  function clampBg() {
+    if (!bgImage) return;
+    const { hw, hh } = bgHalfSize();
+    const minL = disp.w - hw, maxL = hw;
+    const minT = disp.h - hh, maxT = hh;
+    let L = bgImage.left, T = bgImage.top;
+    if (minL <= maxL) L = Math.min(maxL, Math.max(minL, L));
+    if (minT <= maxT) T = Math.min(maxT, Math.max(minT, T));
+    bgImage.set({ left: L, top: T });
+    bgImage.setCoords();
+  }
+  const grayWarn = document.getElementById("grayWarn");
+  function updateGrayWarn() {
+    grayWarn.classList.toggle("hidden", isBgCovered());
+  }
+  // 拖曳照片即時夾邊（拖到邊界就停住，無法露出灰底）
+  canvas.on("object:moving", (e) => {
+    if (e.target === bgImage) { clampBg(); updateGrayWarn(); }
   });
 
   // ===== 標題 =====
@@ -129,17 +191,17 @@
   const fontSizeVal = document.getElementById("fontSizeVal");
 
   function makeTitle(textValue) {
-    const t = new fabric.Textbox(textValue || "你的標題", {
+    const t = new fabric.Textbox(wrapByCount(textValue || "你的標題", TITLE_MAX_PER_LINE), {
       originX: "center",
       originY: "center",
       left: disp.w / 2,
       top: d(TITLE_DEFAULT_CY),
-      width: d(DESIGN_W * 0.86),
+      width: d(DESIGN_W * 0.9),
       fontFamily: "JenBoDD",
       fontSize: d(TITLE_DEFAULT_SIZE),
       fill: "#ffffff",
       stroke: "#000000",
-      strokeWidth: d(TITLE_DEFAULT_SIZE * 0.06),
+      strokeWidth: d(TITLE_DEFAULT_SIZE * TITLE_STROKE_RATIO),
       strokeLineJoin: "round",
       paintFirst: "stroke",
       textAlign: "center",
@@ -167,7 +229,7 @@
 
   titleInput.addEventListener("input", () => {
     ensureTitle();
-    titleText.set("text", titleInput.value || "你的標題");
+    titleText.set("text", wrapByCount(titleInput.value || "你的標題", TITLE_MAX_PER_LINE));
     canvas.requestRenderAll();
   });
 
@@ -177,7 +239,7 @@
     ensureTitle();
     titleText.set({
       fontSize: d(titleSizePx),
-      strokeWidth: d(titleSizePx * 0.06),
+      strokeWidth: d(titleSizePx * TITLE_STROKE_RATIO),
     });
     // 規則：副標不可大於標題 → 標題縮小時連動夾住副標
     if (subSizePx > titleSizePx) {
@@ -228,7 +290,7 @@
       canvas.remove(subtitleGroup);
       subtitleGroup = null;
     }
-    const value = subInput.value.trim();
+    const value = capChars(subInput.value.trim(), SUB_MAX_CHARS);   // 規則：最多 SUB_MAX_CHARS 字
     if (!value) { canvas.requestRenderAll(); return; }
 
     const fontPx = d(Math.min(subSizePx, titleSizePx));   // 規則：不超過標題
@@ -277,6 +339,70 @@
     subSizePx = v;
     subSizeVal.textContent = v;
     buildSubtitle();
+  });
+
+  // ===== 說明標籤（選填）：深字 + 品牌黃手繪圓角底（放 ep 數／吃好飽等短標）=====
+  const noteInput = document.getElementById("noteInput");
+  const noteSizeSlider = document.getElementById("noteSize");
+  const noteSizeVal = document.getElementById("noteSizeVal");
+
+  // 依目前 noteInput / noteSizePx 重建說明標籤群組（保留原位置）
+  function buildNote() {
+    if (noteGroup) {
+      noteCenter = {
+        left: noteGroup.left + (noteGroup.width * noteGroup.scaleX) / 2,
+        top: noteGroup.top + (noteGroup.height * noteGroup.scaleY) / 2,
+      };
+      canvas.remove(noteGroup);
+      noteGroup = null;
+    }
+    const value = noteInput.value.trim();
+    if (!value) { canvas.requestRenderAll(); return; }
+
+    const fontPx = d(noteSizePx);
+    const text = new fabric.Text(value, {
+      fontFamily: "JenBoDD",
+      fontSize: fontPx,
+      fill: "#1f2937",          // 深墨色字（配品牌黃底）
+      textAlign: "center",
+      lineHeight: 1.1,
+    });
+    const padX = fontPx * 0.55;
+    const padY = fontPx * 0.3;
+    const boxW = text.width + padX * 2;
+    const boxH = text.height + padY * 2;
+
+    const box = new fabric.Path(makeBlobPath(boxW, boxH), {
+      fill: "#fcd34d",          // 品牌黃手繪底
+      left: 0,
+      top: 0,
+    });
+    text.set({ originX: "center", originY: "center", left: boxW / 2, top: boxH / 2 });
+
+    const group = new fabric.Group([box, text], {
+      hasControls: false,   // 大小用滑桿，不用拖角
+      lockRotation: true,
+    });
+    const center = noteCenter || { left: disp.w / 2, top: d(NOTE_DEFAULT_CY) };
+    group.set({ left: center.left - group.width / 2, top: center.top - group.height / 2 });
+    group.setCoords();
+    group.on("modified", () => {
+      noteCenter = {
+        left: group.left + (group.width * group.scaleX) / 2,
+        top: group.top + (group.height * group.scaleY) / 2,
+      };
+    });
+
+    noteGroup = group;
+    canvas.add(group);
+    restack();
+  }
+
+  noteInput.addEventListener("input", buildNote);
+  noteSizeSlider.addEventListener("input", () => {
+    noteSizePx = parseInt(noteSizeSlider.value, 10);
+    noteSizeVal.textContent = noteSizePx;
+    buildNote();
   });
 
   // ===== logo（預設置底、鎖定）=====
@@ -339,6 +465,7 @@
     if (obj === illustImage) illustImage = null;
     if (obj === titleText) { titleText = null; }
     if (obj === subtitleGroup) { subtitleGroup = null; subCenter = null; }
+    if (obj === noteGroup) { noteGroup = null; noteCenter = null; }
     canvas.remove(obj);
     canvas.discardActiveObject();
     canvas.requestRenderAll();
@@ -350,6 +477,11 @@
     if (!bgImage) {
       alert("請先上傳一張封面照片！");
       return;
+    }
+    // 防呆：露灰底就先擋下，避免存檔後才發現邊緣破圖
+    if (!isBgCovered()) {
+      const ok = confirm("⚠️ 封面有露出灰底！\n建議先拖曳或放大照片把畫面蓋滿，再下載。\n\n仍要繼續下載嗎？");
+      if (!ok) return;
     }
     canvas.discardActiveObject();
     canvas.requestRenderAll();
@@ -405,6 +537,7 @@
       canvas.requestRenderAll();
     }
     if (subtitleGroup) buildSubtitle();   // 重建以套用手繪字
+    if (noteGroup) buildNote();           // 重建以套用手繪字
   }).catch((err) => {
     console.warn("字體載入失敗，改用系統字", err);
   });
