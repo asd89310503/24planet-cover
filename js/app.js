@@ -806,8 +806,8 @@
   // ===== 雲端設計（Firebase Auth + Firestore，懶載入，不影響啟動效率）=====
   const firebaseConfig = {
     apiKey: "AIzaSyDDTdRNps9YgC7dj39mJ3liN9YvFRWZKAc",
-    authDomain: "24planet-cover.firebaseapp.com",
-    projectId: "24planet-cover",
+    authDomain: "planet-cover.firebaseapp.com",
+    projectId: "planet-cover",
   };
   const FB_VER = "10.12.0";
   let _fb = null;             // 初始化後的 Firebase 物件
