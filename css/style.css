@@ -121,6 +121,9 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .btn-link { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
 
 .btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+
+.subject-tip { margin: -6px 0 0; line-height: 1.5; }
 
 /* 儲存彈窗（手機長按儲存） */
 .save-overlay {

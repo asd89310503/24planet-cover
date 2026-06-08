@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>24 奇怪星球 · 封面產生器</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
-  <link rel="stylesheet" href="css/style.css?v=4" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
 </head>
 <body>
   <header class="app-header">
@@ -72,6 +72,9 @@
         <input type="file" id="illustInput" accept="image/*" hidden />
       </label>
 
+      <button class="btn btn-secondary" id="subjectBtn" type="button">✨ 主體蓋住標題（自動去背）</button>
+      <p class="rec subject-tip">把封面主體自動去背、疊到標題前面，做出「標題被主體擋住」的效果。首次使用需下載 AI 模型（會頓一下，之後變快）；對人像最準、玩偶/雜物可能邊緣不完美。</p>
+
       <div class="field-row">
         <label class="toggle">
           <input type="checkbox" id="safeToggle" checked />
@@ -96,6 +99,6 @@
   </div>
 
   <script src="vendor/fabric.min.js"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

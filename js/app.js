@@ -85,6 +85,7 @@
   let illustImage = null;
   let subtitleGroup = null;
   let noteGroup = null;
+  let subjectImage = null;   // 自動去背後的主體層（疊在標題上方，跟著背景照片）
   let bgBaseScale = 1;    // 封面照片 cover-fit 基準縮放（= 100%）
 
   // 字級狀態（皆為設計座標 px）。規則：副標不可大於標題。
@@ -99,6 +100,7 @@
     if (bgImage) canvas.sendToBack(bgImage);
     if (illustImage && bgImage) illustImage.moveTo(1);
     if (titleText) canvas.bringToFront(titleText);
+    if (subjectImage) canvas.bringToFront(subjectImage);   // 主體蓋住標題（在標題上、副標下）
     if (subtitleGroup) canvas.bringToFront(subtitleGroup);
     if (noteGroup) canvas.bringToFront(noteGroup);
     if (logoImage) canvas.bringToFront(logoImage);
@@ -127,6 +129,7 @@
       if (bgImage) canvas.remove(bgImage);
       bgImage = img;
       canvas.add(bgImage);
+      removeSubjectLayer();   // 換照片 → 舊的去背主體層作廢
       restack();
       // 重置縮放滑桿為 100%
       photoZoom.value = 100;
@@ -148,6 +151,7 @@
     bgImage.set({ scaleX: s, scaleY: s });   // 以中心縮放，位置不變
     clampBg();                                // 縮小後若露邊，夾回蓋滿
     updateGrayWarn();
+    syncSubject();                            // 去背主體層跟著縮放
     canvas.requestRenderAll();
   });
 
@@ -182,7 +186,7 @@
   }
   // 拖曳照片即時夾邊（拖到邊界就停住，無法露出灰底）
   canvas.on("object:moving", (e) => {
-    if (e.target === bgImage) { clampBg(); updateGrayWarn(); }
+    if (e.target === bgImage) { clampBg(); updateGrayWarn(); syncSubject(); }
   });
 
   // ===== 標題 =====
@@ -451,6 +455,82 @@
     });
   });
 
+  // ===== 自動去背：把封面主體疊到標題上方（標題被主體擋住）=====
+  const subjectBtn = document.getElementById("subjectBtn");
+  const SUBJECT_BTN_TEXT = "✨ 主體蓋住標題（自動去背）";
+  let _remover = null;   // 懶載入去背函式（首次點擊才下載模型）
+
+  async function getRemover() {
+    if (_remover) return _remover;
+    const mod = await import("https://esm.sh/@imgly/background-removal@1.5.8");
+    _remover = mod.removeBackground;
+    return _remover;
+  }
+
+  // 去背主體層永遠跟背景照片同位置、同縮放（製造「主體在標題前面」的錯覺）
+  function syncSubject() {
+    if (!subjectImage || !bgImage) return;
+    subjectImage.set({
+      left: bgImage.left,
+      top: bgImage.top,
+      scaleX: bgImage.scaleX,
+      scaleY: bgImage.scaleY,
+    });
+    subjectImage.setCoords();
+  }
+
+  function removeSubjectLayer() {
+    if (subjectImage) { canvas.remove(subjectImage); subjectImage = null; }
+    if (subjectBtn) { subjectBtn.textContent = SUBJECT_BTN_TEXT; subjectBtn.disabled = false; }
+    canvas.requestRenderAll();
+  }
+
+  subjectBtn.addEventListener("click", async () => {
+    if (subjectImage) { removeSubjectLayer(); return; }   // 再按一次＝移除主體層
+    if (!bgImage) { alert("請先上傳一張封面照片！"); return; }
+    const src = bgImage.getSrc ? bgImage.getSrc() : (bgImage._element && bgImage._element.src);
+    if (!src) { alert("讀不到照片來源，請重新上傳照片。"); return; }
+
+    subjectBtn.disabled = true;
+    subjectBtn.textContent = "去背中…首次需下載模型，請稍候";
+    try {
+      const removeBackground = await getRemover();
+      const blob = await removeBackground(src, {
+        progress: (key, cur, total) => {
+          if (key && key.indexOf("fetch") === 0 && total) {
+            subjectBtn.textContent = "下載去背模型 " + Math.round((cur / total) * 100) + "%…";
+          }
+        },
+      });
+      const url = URL.createObjectURL(blob);
+      fabric.Image.fromURL(url, (img) => {
+        img.set({
+          originX: "center",
+          originY: "center",
+          left: bgImage.left,
+          top: bgImage.top,
+          scaleX: bgImage.scaleX,
+          scaleY: bgImage.scaleY,
+          selectable: false,   // 純視覺、跟著背景照片，不可單獨選取/移動
+          evented: false,
+          lockRotation: true,
+        });
+        if (subjectImage) canvas.remove(subjectImage);
+        subjectImage = img;
+        canvas.add(img);
+        restack();
+        URL.revokeObjectURL(url);
+        subjectBtn.disabled = false;
+        subjectBtn.textContent = "✖ 移除主體層";
+      });
+    } catch (err) {
+      console.error("自動去背失敗", err);
+      alert("自動去背失敗 😢\n可能是網路問題或瀏覽器不支援 WebGPU/WASM。\n備案：用手機內建去背存成 PNG，再用「上傳插畫」疊上去。");
+      subjectBtn.disabled = false;
+      subjectBtn.textContent = SUBJECT_BTN_TEXT;
+    }
+  });
+
   // ===== 安全區開關 =====
   const safeToggle = document.getElementById("safeToggle");
   safeToggle.addEventListener("change", () => {
@@ -461,7 +541,7 @@
   document.getElementById("deleteBtn").addEventListener("click", () => {
     const obj = canvas.getActiveObject();
     if (!obj) return;
-    if (obj === bgImage) bgImage = null;
+    if (obj === bgImage) { bgImage = null; removeSubjectLayer(); }
     if (obj === illustImage) illustImage = null;
     if (obj === titleText) { titleText = null; }
     if (obj === subtitleGroup) { subtitleGroup = null; subCenter = null; }
