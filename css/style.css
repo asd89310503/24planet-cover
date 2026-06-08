@@ -125,10 +125,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 .subject-tip { margin: -6px 0 0; line-height: 1.5; }
 
-/* 半寬按鈕（儲存/開啟設計檔並排） */
-.btn.half { flex: 1; }
-.project-row { gap: 10px; }
-
 /* 接續上次設計橫幅 */
 .resume-bar {
   display: flex; align-items: center; justify-content: space-between;

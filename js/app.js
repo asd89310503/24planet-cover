@@ -718,35 +718,6 @@
     });
   }
 
-  // ===== 手動：儲存 / 開啟設計檔（.json）=====
-  const saveProjectBtn = document.getElementById("saveProjectBtn");
-  const loadProjectInput = document.getElementById("loadProjectInput");
-
-  saveProjectBtn.addEventListener("click", () => {
-    const st = serialize();
-    if (!st) { alert("請先上傳一張封面照片再儲存設計檔！"); return; }
-    const blob = new Blob([JSON.stringify(st)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const tag = (st.title && st.title.text ? st.title.text.replace(/\s+/g, "") : "24planet");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "24planet-design-" + tag + ".json";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  });
-
-  loadProjectInput.addEventListener("change", (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try { applyState(JSON.parse(r.result)); currentCloudId = null; scheduleAutosave(); }
-      catch (err) { console.error(err); alert("設計檔讀取失敗，檔案可能損毀或格式不符。"); }
-    };
-    r.readAsText(file);
-    e.target.value = "";   // 允許重複載入同一檔
-  });
-
   // ===== 自動暫存（IndexedDB，debounce，不卡操作）=====
   const DB_NAME = "cover-gen", STORE = "kv", KEY = "autosave";
   function idbOpen() {
