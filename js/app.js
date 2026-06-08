@@ -143,6 +143,7 @@
       placePhoto(img, 100, null);
       hint.textContent = "拖曳照片喬位置・用「照片縮放」滑桿放大來填滿/重新取景";
       ensureTitle();
+      currentCloudId = null;   // 新照片＝新設計，雲端存檔時建新筆
       scheduleAutosave();
     });
   });
@@ -739,7 +740,7 @@
     if (!file) return;
     const r = new FileReader();
     r.onload = () => {
-      try { applyState(JSON.parse(r.result)); scheduleAutosave(); }
+      try { applyState(JSON.parse(r.result)); currentCloudId = null; scheduleAutosave(); }
       catch (err) { console.error(err); alert("設計檔讀取失敗，檔案可能損毀或格式不符。"); }
     };
     r.readAsText(file);
@@ -801,6 +802,173 @@
     resumeBar.classList.add("hidden");
   });
   idbGet().then((st) => { if (st && st.photo) resumeBar.classList.remove("hidden"); }).catch(() => {});
+
+  // ===== 雲端設計（Firebase Auth + Firestore，懶載入，不影響啟動效率）=====
+  const firebaseConfig = {
+    apiKey: "AIzaSyDDTdRNps9YgC7dj39mJ3liN9YvFRWZKAc",
+    authDomain: "24planet-cover.firebaseapp.com",
+    projectId: "24planet-cover",
+  };
+  const FB_VER = "10.12.0";
+  let _fb = null;             // 初始化後的 Firebase 物件
+  let currentCloudId = null;  // 目前對應的雲端設計 id（用來覆蓋同一筆）
+
+  const cloudBtn = document.getElementById("cloudBtn");
+  const cloudOverlay = document.getElementById("cloudOverlay");
+  const cloudBody = document.getElementById("cloudBody");
+  document.getElementById("cloudClose").addEventListener("click", () => cloudOverlay.classList.add("hidden"));
+
+  async function initFirebase() {
+    if (_fb) return _fb;
+    const [appMod, authMod, fsMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/" + FB_VER + "/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/" + FB_VER + "/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/" + FB_VER + "/firebase-firestore.js"),
+    ]);
+    const app = appMod.initializeApp(firebaseConfig);
+    _fb = { authMod, fsMod, auth: authMod.getAuth(app), db: fsMod.getFirestore(app), user: null };
+    authMod.onAuthStateChanged(_fb.auth, (user) => {
+      _fb.user = user;
+      if (user) localStorage.setItem("cloudEnabled", "1");
+      renderCloud();
+    });
+    return _fb;
+  }
+
+  async function cloudSignIn() {
+    const fb = await initFirebase();
+    try {
+      await fb.authMod.signInWithPopup(fb.auth, new fb.authMod.GoogleAuthProvider());
+    } catch (e) {
+      console.warn("popup 登入失敗，改用 redirect", e);
+      try { await fb.authMod.signInWithRedirect(fb.auth, new fb.authMod.GoogleAuthProvider()); }
+      catch (e2) { alert("登入失敗：" + e2.message); }
+    }
+  }
+
+  // 雲端版本的設計檔：壓縮圖片以塞進 Firestore 單筆 1MB
+  function compressImage(src, maxDim, mime, q) {
+    return new Promise((resolve) => {
+      const im = new Image();
+      im.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(im.naturalWidth, im.naturalHeight));
+        const w = Math.round(im.naturalWidth * scale), h = Math.round(im.naturalHeight * scale);
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(im, 0, 0, w, h);
+        resolve(c.toDataURL(mime, q));
+      };
+      im.onerror = () => resolve(src);
+      im.src = src;
+    });
+  }
+  async function serializeForCloud() {
+    const st = serialize();
+    if (!st) return null;
+    st.photo = await compressImage(st.photo, 1440, "image/jpeg", 0.82);
+    if (st.subject) st.subject = await compressImage(st.subject, 1280, "image/webp", 0.8);
+    if (st.illust && st.illust.src) st.illust.src = await compressImage(st.illust.src, 1000, "image/webp", 0.85);
+    return st;
+  }
+
+  async function cloudSave() {
+    const fb = await initFirebase();
+    if (!fb.user) { cloudSignIn(); return; }
+    const st = await serializeForCloud();
+    if (!st) { alert("請先做一張封面再存到雲端！"); return; }
+    const json = JSON.stringify(st);
+    if (json.length > 950000) {
+      alert("這張設計壓縮後仍太大，無法雲端儲存 😢\n請改用本地「💾 儲存設計檔」。");
+      return;
+    }
+    const { doc, setDoc } = fb.fsMod;
+    const id = currentCloudId || (crypto.randomUUID ? crypto.randomUUID() : "d" + Date.now());
+    const title = (st.title && st.title.text) ? st.title.text.replace(/\n/g, " ") : "未命名";
+    try {
+      await setDoc(doc(fb.db, "users", fb.user.uid, "designs", id), { title, updatedAt: Date.now() });
+      await setDoc(doc(fb.db, "users", fb.user.uid, "designData", id), { json });
+      currentCloudId = id;
+      alert("已存到雲端 ☁️✅");
+      renderCloud();
+    } catch (e) { alert("雲端儲存失敗：" + e.message); }
+  }
+
+  async function cloudList() {
+    const fb = _fb;
+    const { collection, getDocs, query, orderBy } = fb.fsMod;
+    const snap = await getDocs(query(collection(fb.db, "users", fb.user.uid, "designs"), orderBy("updatedAt", "desc")));
+    return snap.docs.map((d) => ({ id: d.id, title: d.data().title }));
+  }
+  async function cloudLoad(id) {
+    const fb = _fb;
+    const { doc, getDoc } = fb.fsMod;
+    const snap = await getDoc(doc(fb.db, "users", fb.user.uid, "designData", id));
+    if (!snap.exists()) { alert("找不到這筆雲端資料。"); return; }
+    applyState(JSON.parse(snap.data().json));
+    currentCloudId = id;
+    cloudOverlay.classList.add("hidden");
+  }
+  async function cloudDelete(id) {
+    const fb = _fb;
+    const { doc, deleteDoc } = fb.fsMod;
+    await deleteDoc(doc(fb.db, "users", fb.user.uid, "designs", id));
+    await deleteDoc(doc(fb.db, "users", fb.user.uid, "designData", id));
+    if (currentCloudId === id) currentCloudId = null;
+    renderCloud();
+  }
+
+  function renderCloud() {
+    if (!cloudBody) return;
+    cloudBody.innerHTML = "";
+    const fb = _fb;
+    if (!fb || !fb.user) {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-primary";
+      btn.textContent = "使用 Google 登入";
+      btn.addEventListener("click", cloudSignIn);
+      const tip = document.createElement("p");
+      tip.className = "rec"; tip.style.marginTop = "10px";
+      tip.textContent = "登入後可把設計存到雲端、任何裝置讀取。";
+      cloudBody.append(btn, tip);
+      return;
+    }
+    const bar = document.createElement("div");
+    bar.className = "cloud-userbar";
+    const who = document.createElement("span"); who.textContent = fb.user.email || "已登入";
+    const out = document.createElement("button"); out.className = "btn-mini ghost"; out.textContent = "登出";
+    out.addEventListener("click", () => fb.authMod.signOut(fb.auth));
+    bar.append(who, out);
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn btn-primary";
+    saveBtn.textContent = "⬆️ 把目前設計存到雲端";
+    saveBtn.addEventListener("click", cloudSave);
+    const lt = document.createElement("p"); lt.className = "rec"; lt.textContent = "我的雲端設計：";
+    const list = document.createElement("div"); list.className = "cloud-list"; list.textContent = "載入中…";
+    cloudBody.append(bar, saveBtn, lt, list);
+    cloudList().then((items) => {
+      list.innerHTML = "";
+      if (!items.length) { list.textContent = "（還沒有雲端設計）"; return; }
+      items.forEach((it) => {
+        const row = document.createElement("div"); row.className = "cloud-item";
+        const name = document.createElement("span"); name.className = "cloud-item-name"; name.textContent = it.title || "未命名";
+        const load = document.createElement("button"); load.className = "btn-mini"; load.textContent = "載入";
+        load.addEventListener("click", () => cloudLoad(it.id));
+        const del = document.createElement("button"); del.className = "btn-mini ghost"; del.textContent = "刪除";
+        del.addEventListener("click", () => { if (confirm("刪除這個雲端設計？")) cloudDelete(it.id); });
+        row.append(name, load, del);
+        list.appendChild(row);
+      });
+    }).catch((e) => { list.textContent = "讀取失敗：" + e.message; });
+  }
+
+  cloudBtn.addEventListener("click", async () => {
+    cloudOverlay.classList.remove("hidden");
+    cloudBody.textContent = "連線中…";
+    try { await initFirebase(); renderCloud(); }
+    catch (e) { cloudBody.textContent = "Firebase 載入失敗：" + e.message; }
+  });
+
+  // 用過雲端的人，重開時自動恢復登入狀態（沒用過的人不載入，啟動更輕）
+  if (localStorage.getItem("cloudEnabled") === "1") { initFirebase().catch(() => {}); }
 
   // ===== 工具：讀圖檔成 fabric.Image =====
   function readImage(file, cb) {

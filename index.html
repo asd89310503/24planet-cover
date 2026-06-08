@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>24 奇怪星球 · 封面產生器</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
-  <link rel="stylesheet" href="css/style.css?v=6" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
 </head>
 <body>
   <header class="app-header">
@@ -93,6 +93,8 @@
         <button class="btn-link" id="deleteBtn" title="刪除選取的元素">🗑 刪除選取</button>
       </div>
 
+      <button class="btn btn-secondary" id="cloudBtn" type="button">☁️ 雲端設計（登入後跨裝置）</button>
+
       <div class="field-row project-row">
         <button class="btn btn-secondary half" id="saveProjectBtn" type="button">💾 儲存設計檔</button>
         <label class="btn btn-secondary half">
@@ -116,7 +118,18 @@
     </div>
   </div>
 
+  <!-- 雲端設計面板 -->
+  <div class="cloud-overlay hidden" id="cloudOverlay">
+    <div class="cloud-card">
+      <div class="cloud-head">
+        <span>☁️ 雲端設計</span>
+        <button class="cloud-close" id="cloudClose" type="button">✕</button>
+      </div>
+      <div class="cloud-body" id="cloudBody"></div>
+    </div>
+  </div>
+
   <script src="vendor/fabric.min.js"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>
