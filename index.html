@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>24 奇怪星球 · 封面產生器</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>" />
-  <link rel="stylesheet" href="css/style.css?v=5" />
+  <link rel="stylesheet" href="css/style.css?v=6" />
 </head>
 <body>
   <header class="app-header">
@@ -14,6 +14,16 @@
   </header>
 
   <main class="app-main">
+
+    <!-- 接續上次設計橫幅 -->
+    <div class="resume-bar hidden" id="resumeBar">
+      <span class="resume-text">偵測到上次的設計，要接續嗎？</span>
+      <span class="resume-actions">
+        <button class="btn-mini" id="resumeYes" type="button">接續編輯</button>
+        <button class="btn-mini ghost" id="resumeNo" type="button">從頭開始</button>
+      </span>
+    </div>
+
     <!-- 畫布區 -->
     <div class="stage">
       <div class="canvas-wrap" id="canvasWrap">
@@ -31,6 +41,9 @@
         📷 上傳封面照片
         <input type="file" id="photoInput" accept="image/*" hidden />
       </label>
+
+      <button class="btn btn-secondary" id="subjectBtn" type="button">✨ 主體蓋住標題（自動去背）</button>
+      <p class="rec subject-tip">把封面主體自動去背、疊到標題前面，做出「標題被主體擋住」的效果。首次使用需下載 AI 模型（會頓一下，之後變快）；對人像最準、玩偶/雜物可能邊緣不完美。</p>
 
       <div class="field">
         <label for="photoZoom">封面照片縮放：<span id="photoZoomVal">100%</span> <span class="rec">（放大可重新取景、不露灰底）</span></label>
@@ -72,15 +85,20 @@
         <input type="file" id="illustInput" accept="image/*" hidden />
       </label>
 
-      <button class="btn btn-secondary" id="subjectBtn" type="button">✨ 主體蓋住標題（自動去背）</button>
-      <p class="rec subject-tip">把封面主體自動去背、疊到標題前面，做出「標題被主體擋住」的效果。首次使用需下載 AI 模型（會頓一下，之後變快）；對人像最準、玩偶/雜物可能邊緣不完美。</p>
-
       <div class="field-row">
         <label class="toggle">
           <input type="checkbox" id="safeToggle" checked />
           顯示安全區參考線
         </label>
         <button class="btn-link" id="deleteBtn" title="刪除選取的元素">🗑 刪除選取</button>
+      </div>
+
+      <div class="field-row project-row">
+        <button class="btn btn-secondary half" id="saveProjectBtn" type="button">💾 儲存設計檔</button>
+        <label class="btn btn-secondary half">
+          📂 開啟設計檔
+          <input type="file" id="loadProjectInput" accept=".json,application/json" hidden />
+        </label>
       </div>
 
       <button class="btn btn-download" id="downloadBtn">⬇️ 下載 PNG</button>
@@ -99,6 +117,6 @@
   </div>
 
   <script src="vendor/fabric.min.js"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

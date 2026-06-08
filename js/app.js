@@ -110,34 +110,40 @@
   // ===== 背景照片 =====
   const photoInput = document.getElementById("photoInput");
   const hint = document.getElementById("hint");
+  // 放置背景照片：cover-fit + 指定縮放%與中心（center 為顯示座標，省略＝置中）
+  function placePhoto(img, zoomPct, center) {
+    bgBaseScale = Math.max(disp.w / img.width, disp.h / img.height);  // 100% 基準＝剛好蓋滿
+    const s = bgBaseScale * (zoomPct / 100);
+    img.set({
+      originX: "center",
+      originY: "center",
+      left: center ? center.left : disp.w / 2,
+      top: center ? center.top : disp.h / 2,
+      scaleX: s,
+      scaleY: s,
+      hasControls: false,   // 角落控制點常落在畫布外難按，改用縮放滑桿
+      lockRotation: true,
+    });
+    if (bgImage) canvas.remove(bgImage);
+    bgImage = img;
+    canvas.add(bgImage);
+    photoZoom.value = zoomPct;
+    photoZoomVal.textContent = zoomPct + "%";
+    clampBg();
+    restack();
+    ensureLogo();
+    updateGrayWarn();
+  }
+
   photoInput.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     readImage(file, (img) => {
-      // cover-fit 鋪滿畫布（此縮放 = 100% 基準，剛好蓋滿不留灰）
-      bgBaseScale = Math.max(disp.w / img.width, disp.h / img.height);
-      img.set({
-        originX: "center",
-        originY: "center",
-        left: disp.w / 2,
-        top: disp.h / 2,
-        scaleX: bgBaseScale,
-        scaleY: bgBaseScale,
-        hasControls: false,   // 角落控制點常落在畫布外難按，改用縮放滑桿
-        lockRotation: true,
-      });
-      if (bgImage) canvas.remove(bgImage);
-      bgImage = img;
-      canvas.add(bgImage);
       removeSubjectLayer();   // 換照片 → 舊的去背主體層作廢
-      restack();
-      // 重置縮放滑桿為 100%
-      photoZoom.value = 100;
-      photoZoomVal.textContent = "100%";
+      placePhoto(img, 100, null);
       hint.textContent = "拖曳照片喬位置・用「照片縮放」滑桿放大來填滿/重新取景";
       ensureTitle();
-      ensureLogo();
-      updateGrayWarn();   // 剛載入為置中蓋滿，隱藏警告
+      scheduleAutosave();
     });
   });
 
@@ -153,6 +159,7 @@
     updateGrayWarn();
     syncSubject();                            // 去背主體層跟著縮放
     canvas.requestRenderAll();
+    scheduleAutosave();
   });
 
   // ===== 防呆：封面照片不可露出灰底 =====
@@ -235,6 +242,7 @@
     ensureTitle();
     titleText.set("text", wrapByCount(titleInput.value || "你的標題", TITLE_MAX_PER_LINE));
     canvas.requestRenderAll();
+    scheduleAutosave();
   });
 
   fontSizeSlider.addEventListener("input", () => {
@@ -253,6 +261,7 @@
       buildSubtitle();
     }
     canvas.requestRenderAll();
+    scheduleAutosave();
   });
 
   // ===== 副標題（選填）：白字 + 手繪不規則黑色圓角底 =====
@@ -336,13 +345,14 @@
     restack();
   }
 
-  subInput.addEventListener("input", buildSubtitle);
+  subInput.addEventListener("input", () => { buildSubtitle(); scheduleAutosave(); });
   subSizeSlider.addEventListener("input", () => {
     let v = parseInt(subSizeSlider.value, 10);
     if (v > titleSizePx) { v = titleSizePx; subSizeSlider.value = v; }  // 夾住：不超過標題
     subSizePx = v;
     subSizeVal.textContent = v;
     buildSubtitle();
+    scheduleAutosave();
   });
 
   // ===== 說明標籤（選填）：深字 + 品牌黃手繪圓角底（放 ep 數／吃好飽等短標）=====
@@ -402,11 +412,12 @@
     restack();
   }
 
-  noteInput.addEventListener("input", buildNote);
+  noteInput.addEventListener("input", () => { buildNote(); scheduleAutosave(); });
   noteSizeSlider.addEventListener("input", () => {
     noteSizePx = parseInt(noteSizeSlider.value, 10);
     noteSizeVal.textContent = noteSizePx;
     buildNote();
+    scheduleAutosave();
   });
 
   // ===== logo（預設置底、鎖定）=====
@@ -452,6 +463,7 @@
       restack();
       canvas.setActiveObject(illustImage);
       canvas.requestRenderAll();
+      scheduleAutosave();
     });
   });
 
@@ -485,8 +497,36 @@
     canvas.requestRenderAll();
   }
 
+  function blobToDataURL(blob) {
+    return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+  }
+
+  // 用一張（dataURL）建立／取代去背主體層，位置縮放對齊背景照片
+  function addSubjectLayer(src, cb) {
+    fabric.Image.fromURL(src, (img) => {
+      img.set({
+        originX: "center",
+        originY: "center",
+        left: bgImage.left,
+        top: bgImage.top,
+        scaleX: bgImage.scaleX,
+        scaleY: bgImage.scaleY,
+        selectable: false,   // 純視覺、跟著背景照片，不可單獨選取/移動
+        evented: false,
+        lockRotation: true,
+      });
+      if (subjectImage) canvas.remove(subjectImage);
+      subjectImage = img;
+      canvas.add(img);
+      restack();
+      subjectBtn.disabled = false;
+      subjectBtn.textContent = "✖ 移除主體層";
+      if (cb) cb();
+    });
+  }
+
   subjectBtn.addEventListener("click", async () => {
-    if (subjectImage) { removeSubjectLayer(); return; }   // 再按一次＝移除主體層
+    if (subjectImage) { removeSubjectLayer(); scheduleAutosave(); return; }   // 再按一次＝移除
     if (!bgImage) { alert("請先上傳一張封面照片！"); return; }
     const src = bgImage.getSrc ? bgImage.getSrc() : (bgImage._element && bgImage._element.src);
     if (!src) { alert("讀不到照片來源，請重新上傳照片。"); return; }
@@ -502,27 +542,8 @@
           }
         },
       });
-      const url = URL.createObjectURL(blob);
-      fabric.Image.fromURL(url, (img) => {
-        img.set({
-          originX: "center",
-          originY: "center",
-          left: bgImage.left,
-          top: bgImage.top,
-          scaleX: bgImage.scaleX,
-          scaleY: bgImage.scaleY,
-          selectable: false,   // 純視覺、跟著背景照片，不可單獨選取/移動
-          evented: false,
-          lockRotation: true,
-        });
-        if (subjectImage) canvas.remove(subjectImage);
-        subjectImage = img;
-        canvas.add(img);
-        restack();
-        URL.revokeObjectURL(url);
-        subjectBtn.disabled = false;
-        subjectBtn.textContent = "✖ 移除主體層";
-      });
+      const dataUrl = await blobToDataURL(blob);   // 用 dataURL 以便存進設計檔
+      addSubjectLayer(dataUrl, scheduleAutosave);
     } catch (err) {
       console.error("自動去背失敗", err);
       alert("自動去背失敗 😢\n可能是網路問題或瀏覽器不支援 WebGPU/WASM。\n備案：用手機內建去背存成 PNG，再用「上傳插畫」疊上去。");
@@ -549,6 +570,7 @@
     canvas.remove(obj);
     canvas.discardActiveObject();
     canvas.requestRenderAll();
+    scheduleAutosave();
   });
 
   // ===== 下載 PNG =====
@@ -598,6 +620,187 @@
     saveOverlay.classList.add("hidden");
     saveImg.src = "";
   });
+
+  // ===== 設計檔：序列化 / 還原 =====
+  // 座標一律以「設計座標 1080」儲存（除以 SCALE），跨裝置都能正確還原。
+  function groupCenter(g) {
+    return { left: g.left + (g.width * g.scaleX) / 2, top: g.top + (g.height * g.scaleY) / 2 };
+  }
+
+  function serialize() {
+    if (!bgImage) return null;   // 沒照片不存
+    const st = {
+      v: 1,
+      photo: bgImage.getSrc(),
+      photoZoom: parseInt(photoZoom.value, 10),
+      bg: { cx: bgImage.left / SCALE, cy: bgImage.top / SCALE },
+    };
+    if (titleText && titleInput.value) {
+      st.title = { text: titleInput.value, size: titleSizePx, cy: titleText.top / SCALE };
+    }
+    if (subtitleGroup && subInput.value.trim()) {
+      const c = groupCenter(subtitleGroup);
+      st.sub = { text: subInput.value, size: subSizePx, cx: c.left / SCALE, cy: c.top / SCALE };
+    }
+    if (noteGroup && noteInput.value.trim()) {
+      const c = groupCenter(noteGroup);
+      st.note = { text: noteInput.value, size: noteSizePx, cx: c.left / SCALE, cy: c.top / SCALE };
+    }
+    if (illustImage) {
+      st.illust = {
+        src: illustImage.getSrc(),
+        cx: illustImage.left / SCALE, cy: illustImage.top / SCALE,
+        sx: illustImage.scaleX / SCALE, sy: illustImage.scaleY / SCALE,
+      };
+    }
+    if (subjectImage) st.subject = subjectImage.getSrc();
+    return st;
+  }
+
+  function clearAll() {
+    [bgImage, titleText, subtitleGroup, noteGroup, illustImage, subjectImage].forEach((o) => { if (o) canvas.remove(o); });
+    bgImage = titleText = subtitleGroup = noteGroup = illustImage = subjectImage = null;
+    subCenter = noteCenter = null;
+    titleInput.value = ""; subInput.value = ""; noteInput.value = "";
+    subjectBtn.textContent = SUBJECT_BTN_TEXT; subjectBtn.disabled = false;
+  }
+
+  function applyState(s) {
+    if (!s || !s.photo) return;
+    clearAll();
+    titleSizePx = (s.title && s.title.size) || TITLE_DEFAULT_SIZE;
+    fontSizeSlider.value = titleSizePx; fontSizeVal.textContent = titleSizePx;
+    subSizePx = (s.sub && s.sub.size) || SUB_DEFAULT_SIZE;
+    subSizeSlider.value = subSizePx; subSizeVal.textContent = subSizePx;
+    noteSizePx = (s.note && s.note.size) || NOTE_DEFAULT_SIZE;
+    noteSizeSlider.value = noteSizePx; noteSizeVal.textContent = noteSizePx;
+
+    fabric.Image.fromURL(s.photo, (img) => {
+      placePhoto(img, s.photoZoom || 100, s.bg ? { left: s.bg.cx * SCALE, top: s.bg.cy * SCALE } : null);
+      hint.textContent = "已載入設計檔，可繼續編輯 ✏️";
+
+      if (s.title && s.title.text) {
+        titleInput.value = s.title.text;
+        ensureTitle();
+        titleText.set({
+          text: wrapByCount(s.title.text, TITLE_MAX_PER_LINE),
+          fontSize: d(titleSizePx),
+          strokeWidth: d(titleSizePx * TITLE_STROKE_RATIO),
+          top: s.title.cy * SCALE,
+        });
+      }
+      if (s.sub && s.sub.text) {
+        subInput.value = s.sub.text;
+        subCenter = { left: s.sub.cx * SCALE, top: s.sub.cy * SCALE };
+        buildSubtitle();
+      }
+      if (s.note && s.note.text) {
+        noteInput.value = s.note.text;
+        noteCenter = { left: s.note.cx * SCALE, top: s.note.cy * SCALE };
+        buildNote();
+      }
+      if (s.illust && s.illust.src) {
+        fabric.Image.fromURL(s.illust.src, (im) => {
+          im.set({
+            originX: "center", originY: "center",
+            left: s.illust.cx * SCALE, top: s.illust.cy * SCALE,
+            scaleX: s.illust.sx * SCALE, scaleY: s.illust.sy * SCALE,
+            lockRotation: true,
+          });
+          illustImage = im; canvas.add(im); restack();
+        });
+      }
+      if (s.subject) addSubjectLayer(s.subject);
+      restack();
+      canvas.requestRenderAll();
+      scheduleAutosave();
+    });
+  }
+
+  // ===== 手動：儲存 / 開啟設計檔（.json）=====
+  const saveProjectBtn = document.getElementById("saveProjectBtn");
+  const loadProjectInput = document.getElementById("loadProjectInput");
+
+  saveProjectBtn.addEventListener("click", () => {
+    const st = serialize();
+    if (!st) { alert("請先上傳一張封面照片再儲存設計檔！"); return; }
+    const blob = new Blob([JSON.stringify(st)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const tag = (st.title && st.title.text ? st.title.text.replace(/\s+/g, "") : "24planet");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "24planet-design-" + tag + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  loadProjectInput.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try { applyState(JSON.parse(r.result)); scheduleAutosave(); }
+      catch (err) { console.error(err); alert("設計檔讀取失敗，檔案可能損毀或格式不符。"); }
+    };
+    r.readAsText(file);
+    e.target.value = "";   // 允許重複載入同一檔
+  });
+
+  // ===== 自動暫存（IndexedDB，debounce，不卡操作）=====
+  const DB_NAME = "cover-gen", STORE = "kv", KEY = "autosave";
+  function idbOpen() {
+    return new Promise((res, rej) => {
+      const q = indexedDB.open(DB_NAME, 1);
+      q.onupgradeneeded = () => q.result.createObjectStore(STORE);
+      q.onsuccess = () => res(q.result);
+      q.onerror = () => rej(q.error);
+    });
+  }
+  function idbSet(v) {
+    return idbOpen().then((db) => new Promise((res, rej) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(v, KEY);
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    }));
+  }
+  function idbGet() {
+    return idbOpen().then((db) => new Promise((res, rej) => {
+      const tx = db.transaction(STORE, "readonly");
+      const r = tx.objectStore(STORE).get(KEY);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => rej(r.error);
+    }));
+  }
+  function idbClear() {
+    return idbOpen().then((db) => new Promise((res) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(KEY);
+      tx.oncomplete = () => res();
+    }));
+  }
+
+  let _autosaveT = null;
+  function scheduleAutosave() {
+    clearTimeout(_autosaveT);
+    _autosaveT = setTimeout(() => {
+      const st = serialize();
+      if (st) idbSet(st).catch(() => {});
+    }, 1500);   // 停手 1.5 秒才存，避免卡操作
+  }
+  canvas.on("object:modified", scheduleAutosave);   // 拖曳結束也存
+
+  // 啟動偵測上次自動暫存 → 顯示接續橫幅
+  const resumeBar = document.getElementById("resumeBar");
+  document.getElementById("resumeYes").addEventListener("click", () => {
+    idbGet().then((st) => { if (st) applyState(st); }).catch(() => {});
+    resumeBar.classList.add("hidden");
+  });
+  document.getElementById("resumeNo").addEventListener("click", () => {
+    idbClear().catch(() => {});
+    resumeBar.classList.add("hidden");
+  });
+  idbGet().then((st) => { if (st && st.photo) resumeBar.classList.remove("hidden"); }).catch(() => {});
 
   // ===== 工具：讀圖檔成 fabric.Image =====
   function readImage(file, cb) {

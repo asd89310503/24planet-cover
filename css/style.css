@@ -125,6 +125,31 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 .subject-tip { margin: -6px 0 0; line-height: 1.5; }
 
+/* 半寬按鈕（儲存/開啟設計檔並排） */
+.btn.half { flex: 1; }
+.project-row { gap: 10px; }
+
+/* 接續上次設計橫幅 */
+.resume-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+}
+.resume-bar.hidden { display: none; }
+.resume-text { font-size: 13px; color: #3730a3; font-weight: 600; }
+.resume-actions { display: inline-flex; gap: 8px; }
+.btn-mini {
+  border: none; border-radius: 999px;
+  padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700;
+  background: #4f46e5; color: #fff; cursor: pointer;
+}
+.btn-mini.ghost { background: #fff; color: #4f46e5; border: 1px solid #c7d2fe; }
+.btn-mini:active { transform: translateY(1px); }
+
 /* 儲存彈窗（手機長按儲存） */
 .save-overlay {
   position: fixed; inset: 0; z-index: 1000;
