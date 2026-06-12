@@ -951,7 +951,7 @@
   }
 
   // ===== 載入字體後再啟用標題（避免 fallback 字閃爍）=====
-  const jenbo = new FontFace("JenBoDD", "url(assets/JenBoDDlongver24.otf)");
+  const jenbo = new FontFace("JenBoDD", "url(assets/JenBoDDlongver24-Narrow.otf)");
   jenbo.load().then((f) => {
     document.fonts.add(f);
     if (titleText) {
