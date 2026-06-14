@@ -43,15 +43,59 @@
   // d() 把設計座標換算成顯示座標
   const d = (v) => v * SCALE;
 
-  // 依字數硬斷行：保留使用者手動換行，並把每行夾在 n 字以內
+  // 寬度感知斷行：全形(中文/全形標點)算 1、半形(英數/半形標點/空白/半形假名)算 0.5；
+  // 每行上限 n 個「全形寬」。英數連續視為一個詞，不從中間切斷；保留使用者手動換行。
+  function charW(ch) {
+    const cp = ch.codePointAt(0);
+    if (cp <= 0x7E) return 0.5;                    // ASCII：英數、半形標點、空白
+    if (cp >= 0xFF61 && cp <= 0xFF9F) return 0.5;  // 半形片假名
+    return 1;                                       // 全形（中文、全形標點…）
+  }
+  function tokW(t) {
+    return Array.from(t).reduce((s, ch) => s + charW(ch), 0);
+  }
+  function tokenizeLine(line) {
+    const toks = [];
+    let buf = "";
+    const flush = () => { if (buf) { toks.push(buf); buf = ""; } };
+    for (const ch of Array.from(line)) {
+      if (ch === " ") { flush(); toks.push(" "); }
+      else if (/[A-Za-z0-9]/.test(ch)) { buf += ch; }   // 英數連成一個詞
+      else { flush(); toks.push(ch); }                  // CJK／標點各自成 token
+    }
+    flush();
+    return toks;
+  }
+  function wrapLine(line, budget) {
+    const lines = [];
+    let cur = "", curW = 0;
+    const pushCur = () => { lines.push(cur.replace(/ +$/, "")); cur = ""; curW = 0; };
+    for (const t of tokenizeLine(line)) {
+      if (t === " ") {
+        if (cur === "") continue;                       // 行首空白略過
+        if (curW + 0.5 <= budget) { cur += " "; curW += 0.5; }
+        continue;
+      }
+      const w = tokW(t);
+      if (w > budget) {                                 // 單一超長詞 → 硬切
+        if (cur) pushCur();
+        let part = "", pw = 0;
+        for (const ch of Array.from(t)) {
+          const cw = charW(ch);
+          if (pw + cw > budget) { lines.push(part); part = ""; pw = 0; }
+          part += ch; pw += cw;
+        }
+        cur = part; curW = pw;
+        continue;
+      }
+      if (curW + w > budget) pushCur();
+      cur += t; curW += w;
+    }
+    if (cur !== "") pushCur();
+    return lines.join("\n");
+  }
   function wrapByCount(str, n) {
-    return str.split("\n").map((line) => {
-      const chars = Array.from(line);
-      if (chars.length <= n) return line;
-      const out = [];
-      for (let i = 0; i < chars.length; i += n) out.push(chars.slice(i, i + n).join(""));
-      return out.join("\n");
-    }).join("\n");
+    return str.split("\n").map((line) => wrapLine(line, n)).join("\n");
   }
 
   // 依字數截斷（以字為單位，正確處理多位元字元）
