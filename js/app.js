@@ -17,7 +17,8 @@
   const TITLE_MAX_PER_LINE = 6;           // 標題一行最多字數
   const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
   const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
-  const MASCOT_MARGIN = 14;               // 龍鼠離安全區下緣／畫面最底的留白
+  const MASCOT_TARGET_W = 960;            // 龍鼠寬度（越大臉越往安全區上方探出，嘴巴也要在線上方）
+  const MASCOT_BOTTOM_Y = 1905;           // 龍鼠底邊 Y：貼齊畫面最底
   const SUB_DEFAULT_SIZE = 180;           // 副標題預設字級（品牌建議基準）
   const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
   const SUB_MAX_CHARS = 8;                // 副標題最多字數
@@ -497,20 +498,16 @@
     });
   }
 
-  // ===== 底部龍鼠角色（固定，完整落在安全區下方底帶、不越線）=====
+  // ===== 底部龍鼠角色（固定，底邊貼齊畫面最底、臉探進安全區上方）=====
   function ensureMascots() {
     if (mascotImage) return;
     fabric.Image.fromURL("assets/mascots.png?v=2", (img) => {
-      // 底帶＝安全區下緣到畫面最底，留上下邊距；依「高度」塞進去，確保不超出安全區
-      const availH = DESIGN_H - SAFE_BOTTOM - MASCOT_MARGIN * 2;
-      let scale = d(availH) / img.height;
-      const maxW = d(DESIGN_W * 0.9);
-      if (img.width * scale > maxW) scale = maxW / img.width;   // 寬度也別超
+      const scale = d(MASCOT_TARGET_W) / img.width;
       img.set({
         originX: "center",
         originY: "bottom",
         left: disp.w / 2,
-        top: d(DESIGN_H - MASCOT_MARGIN),   // 底邊貼近畫面最底
+        top: d(MASCOT_BOTTOM_Y),   // 底邊貼近畫面最底；越大則臉越往上、探出安全區線
         scaleX: scale,
         scaleY: scale,
         selectable: false,
