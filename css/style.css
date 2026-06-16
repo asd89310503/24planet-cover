@@ -56,7 +56,7 @@ html, body {
   /* top / height 由 JS 設定（對應 1080×1080 安全區） */
 }
 .safe-overlay::after {
-  content: "IG 安全區 1080×1080";
+  content: "安全區 1080×1350";
   position: absolute;
   top: 4px; left: 50%;
   transform: translateX(-50%);

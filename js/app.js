@@ -5,9 +5,10 @@
   // ===== 設計座標系統（匯出最終尺寸）=====
   const DESIGN_W = 1080;
   const DESIGN_H = 1920;
-  const SAFE_SIZE = 1080;                 // IG 安全區為 1080×1080 正方形
-  const SAFE_TOP = (DESIGN_H - SAFE_SIZE) / 2;  // 420
-  const SAFE_BOTTOM = SAFE_TOP + SAFE_SIZE;      // 1500
+  const SAFE_W = 1080;                    // 安全區寬（滿版）
+  const SAFE_H = 1350;                    // 安全區高（短影音可視範圍）
+  const SAFE_TOP = (DESIGN_H - SAFE_H) / 2;     // 285
+  const SAFE_BOTTOM = SAFE_TOP + SAFE_H;        // 1635
 
   // 預設值（皆以「設計座標 1080 寬」為基準）
   const TITLE_DEFAULT_SIZE = 250;         // 標題預設字級（品牌建議基準）
@@ -16,6 +17,8 @@
   const TITLE_MAX_PER_LINE = 6;           // 標題一行最多字數
   const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
   const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
+  const MASCOT_TARGET_W = 560;            // 龍鼠角色目標寬（2048² 含透明留白）
+  const MASCOT_BOTTOM_Y = 1910;           // 龍鼠底邊 Y：貼齊畫面最底（安全區下方）
   const SUB_DEFAULT_SIZE = 180;           // 副標題預設字級（品牌建議基準）
   const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
   const SUB_MAX_CHARS = 8;                // 副標題最多字數
@@ -118,7 +121,7 @@
   const safeOverlay = document.getElementById("safeOverlay");
   function layoutSafeOverlay() {
     safeOverlay.style.top = d(SAFE_TOP) + "px";
-    safeOverlay.style.height = d(SAFE_SIZE) + "px";
+    safeOverlay.style.height = d(SAFE_H) + "px";
   }
   layoutSafeOverlay();
 
@@ -126,6 +129,7 @@
   let bgImage = null;
   let titleText = null;
   let logoImage = null;
+  let mascotImage = null;
   let illustImage = null;
   let subtitleGroup = null;
   let noteGroup = null;
@@ -147,6 +151,7 @@
     if (subjectImage) canvas.bringToFront(subjectImage);   // 主體蓋住標題（在標題上、副標下）
     if (subtitleGroup) canvas.bringToFront(subtitleGroup);
     if (noteGroup) canvas.bringToFront(noteGroup);
+    if (mascotImage) canvas.bringToFront(mascotImage);   // 底部龍鼠
     if (logoImage) canvas.bringToFront(logoImage);
     canvas.requestRenderAll();
   }
@@ -176,6 +181,7 @@
     clampBg();
     restack();
     ensureLogo();
+    ensureMascots();
     updateGrayWarn();
   }
 
@@ -482,6 +488,27 @@
       });
       logoImage = img;
       canvas.add(logoImage);
+      restack();
+    });
+  }
+
+  // ===== 底部龍鼠角色（固定置底、鎖定）=====
+  function ensureMascots() {
+    if (mascotImage) return;
+    fabric.Image.fromURL("assets/mascots.png?v=1", (img) => {
+      const scale = d(MASCOT_TARGET_W) / img.width;
+      img.set({
+        originX: "center",
+        originY: "bottom",
+        left: disp.w / 2,
+        top: d(MASCOT_BOTTOM_Y),
+        scaleX: scale,
+        scaleY: scale,
+        selectable: false,
+        evented: false,
+      });
+      mascotImage = img;
+      canvas.add(mascotImage);
       restack();
     });
   }
