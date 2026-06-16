@@ -17,7 +17,7 @@
   const TITLE_MAX_PER_LINE = 6;           // 標題一行最多字數
   const LOGO_TARGET_W = 350;              // logo 目標寬（含透明留白）— 縮小一半
   const LOGO_CY = 1380;                   // logo 中心 Y：往內移，遠離安全區下緣留呼吸感
-  const MASCOT_TARGET_W = 960;            // 龍鼠寬度（越大臉越往安全區上方探出，嘴巴也要在線上方）
+  const MASCOT_TARGET_W = 480;            // 龍鼠寬度（依截圖紅框大小）
   const MASCOT_BOTTOM_Y = 1905;           // 龍鼠底邊 Y：貼齊畫面最底
   const SUB_DEFAULT_SIZE = 180;           // 副標題預設字級（品牌建議基準）
   const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
