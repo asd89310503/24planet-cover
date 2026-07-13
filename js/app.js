@@ -267,7 +267,7 @@
       strokeLineJoin: "round",
       paintFirst: "stroke",
       textAlign: "center",
-      lineHeight: 1.05,
+      lineHeight: 0.9,
       editable: false,
       lockMovementX: true,    // 強制水平置中：只能上下移動
       hasControls: false,     // 不顯示縮放控制點：大小一律用字級滑桿
