@@ -363,10 +363,10 @@
       fontSize: fontPx,
       fill: "#ffffff",
       textAlign: "center",
-      lineHeight: 1.1,
+      lineHeight: 1.0,
     });
-    const padX = fontPx * 0.46;  // 左右內距，避免貼邊壓迫（縮小黑底框）
-    const padY = fontPx * 0.24;  // 上下內距（縮小黑底框）
+    const padX = fontPx * 0.32;  // 左右內距，避免貼邊壓迫（縮小黑底框）
+    const padY = fontPx * 0.12;  // 上下內距（縮小黑底框）
     const boxW = text.width + padX * 2;
     const boxH = text.height + padY * 2;
 
