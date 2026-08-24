@@ -432,8 +432,8 @@
       textAlign: "center",
       lineHeight: 1.1,
     });
-    const padX = fontPx * 0.55;
-    const padY = fontPx * 0.3;
+    const padX = fontPx * 0.32;  // 左右內距（與副標黑底一致，縮小黃底留白）
+    const padY = fontPx * 0.12;  // 上下內距（與副標黑底一致，縮小黃底留白）
     const boxW = text.width + padX * 2;
     const boxH = text.height + padY * 2;
 
