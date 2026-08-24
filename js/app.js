@@ -883,14 +883,40 @@
     return _fb;
   }
 
+  // 把 Firebase 的錯誤碼翻成看得懂的話，並直接寫出該怎麼修。
+  // 之前登入失敗只會把人丟到 firebaseapp.com 的空白錯誤頁，完全查不出原因。
+  function authErrorMessage(code, msg) {
+    if (code === "auth/unauthorized-domain") {
+      return "登入失敗：網域「" + location.hostname + "」沒有被授權。\n\n" +
+        "修法：Firebase 專案 planet-cover → Authentication → Settings → 授權網域，" +
+        "把 " + location.hostname + " 加進去，約 1 分鐘生效。";
+    }
+    if (code === "auth/operation-not-allowed") {
+      return "登入失敗：這個 Firebase 專案還沒啟用 Google 登入。\n\n" +
+        "修法：Authentication → Sign-in method → 開啟 Google。";
+    }
+    if (code === "auth/popup-blocked") {
+      return "登入失敗：瀏覽器擋掉了登入視窗，請允許彈出視窗後再試一次。";
+    }
+    return "登入失敗：" + (msg || code || "未知錯誤");
+  }
+
   async function cloudSignIn() {
     const fb = await initFirebase();
+    const provider = () => new fb.authMod.GoogleAuthProvider();
     try {
-      await fb.authMod.signInWithPopup(fb.auth, new fb.authMod.GoogleAuthProvider());
+      await fb.authMod.signInWithPopup(fb.auth, provider());
     } catch (e) {
-      console.warn("popup 登入失敗，改用 redirect", e);
-      try { await fb.authMod.signInWithRedirect(fb.auth, new fb.authMod.GoogleAuthProvider()); }
-      catch (e2) { alert("登入失敗：" + e2.message); }
+      const code = (e && e.code) || "";
+      // 使用者自己關掉視窗／連點兩次：不是錯誤，安靜收工
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      // 只有「彈窗被瀏覽器擋掉」才值得改用 redirect。
+      // 其他錯誤（例如網域沒授權）redirect 一樣會失敗，卻會把整頁導走、
+      // 把人丟到一個沒有任何說明的錯誤頁——手機 Safari 上就是這樣壞的。
+      if (code !== "auth/popup-blocked") { alert(authErrorMessage(code, e && e.message)); return; }
+      console.warn("彈窗被擋，改用 redirect", e);
+      try { await fb.authMod.signInWithRedirect(fb.auth, provider()); }
+      catch (e2) { alert(authErrorMessage((e2 && e2.code) || "", e2 && e2.message)); }
     }
   }
 
