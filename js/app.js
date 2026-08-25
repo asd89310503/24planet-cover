@@ -22,7 +22,7 @@
   const SUB_DEFAULT_SIZE = 200;           // 副標題預設字級（品牌建議基準）
   const SUB_DEFAULT_CY = 1180;            // 副標題預設中心 Y：標題下方（標題在上、副標在下）
   const SUB_MAX_CHARS = 8;                // 副標題最多字數
-  const NOTE_DEFAULT_SIZE = 140;          // 說明標籤（ep 數／短評）預設字級
+  const NOTE_DEFAULT_SIZE = 160;          // 說明標籤（ep 數／短評）預設字級
   const NOTE_DEFAULT_CY = 600;            // 說明標籤預設中心 Y：上方
 
   // ===== 計算顯示尺寸（手機優先，貼合螢幕）=====
@@ -365,8 +365,8 @@
       textAlign: "center",
       lineHeight: 1.0,
     });
-    const padX = fontPx * 0.32;  // 左右內距，避免貼邊壓迫（縮小黑底框）
-    const padY = fontPx * 0.12;  // 上下內距（縮小黑底框）
+    const padX = fontPx * 0.26;  // 左右內距（2026-08-24 再收一次）
+    const padY = fontPx * 0.08;  // 上下內距（2026-08-24 再收一次）
     const boxW = text.width + padX * 2;
     const boxH = text.height + padY * 2;
 
@@ -430,10 +430,10 @@
       fontSize: fontPx,
       fill: "#1f2937",          // 深墨色字（配品牌黃底）
       textAlign: "center",
-      lineHeight: 1.1,
+      lineHeight: 1.0,          // 跟副標黑底一致；先前留在 1.1，憑空多撐高 10%
     });
-    const padX = fontPx * 0.32;  // 左右內距（與副標黑底一致，縮小黃底留白）
-    const padY = fontPx * 0.12;  // 上下內距（與副標黑底一致，縮小黃底留白）
+    const padX = fontPx * 0.26;  // 左右內距（與副標黑底一致）
+    const padY = fontPx * 0.08;  // 上下內距（與副標黑底一致）
     const boxW = text.width + padX * 2;
     const boxH = text.height + padY * 2;
 
